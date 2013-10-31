@@ -24,6 +24,9 @@ namespace BspViewer
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+
+            graphics.PreferredBackBufferHeight = 900;
+            graphics.PreferredBackBufferWidth = 1400;
         }
 
         protected override void Initialize()

@@ -52,7 +52,7 @@ namespace BspViewer
 
         MouseState originalMouse;
         float CameraSpeed = 0.003f;
-        float WalkSpeed = 2f;
+        float WalkSpeed = 15f;
         private void MoveAround()
         {
             KeyboardState ks = Keyboard.GetState();

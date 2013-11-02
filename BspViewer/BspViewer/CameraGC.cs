@@ -16,7 +16,7 @@ namespace BspViewer
 
         static float VIEW_ANGLE = MathHelper.PiOver4;
         static float NEAR_PLANE = 0.1f;
-        static float FAR_PLANE = 1500.0f;
+        static float FAR_PLANE = 5000.0f;
 
         public CameraGC(Game pGame)
             : base(pGame)

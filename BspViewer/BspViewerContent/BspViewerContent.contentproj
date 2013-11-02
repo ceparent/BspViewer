@@ -42,12 +42,26 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DevFont.spritefont">
+      <Name>DevFont</Name>
+      <Importer>FontDescriptionImporter</Importer>
+      <Processor>FontDescriptionProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
     <None Include="maps\cht3.bsp">
       <Name>cht3</Name>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="maps\Level.bsp">
       <Name>Level</Name>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="maps\q3dm1.bsp">
+      <Name>q3dm1</Name>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="maps\q3dm17.bsp">
+      <Name>q3dm17</Name>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="maps\q3dm8.bsp">

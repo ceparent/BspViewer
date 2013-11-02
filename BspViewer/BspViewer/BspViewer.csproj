@@ -107,9 +107,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BezierPatch.cs" />
     <Compile Include="BspFile.cs" />
     <Compile Include="BspRenderer.cs" />
     <Compile Include="CameraGC.cs" />
+    <Compile Include="Bezier.cs" />
     <Compile Include="IBspRenderer.cs" />
     <Compile Include="ICameraComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

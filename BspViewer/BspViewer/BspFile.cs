@@ -188,6 +188,26 @@ namespace BspViewer
             Color = color;
         }
 
+        public static vertex operator *(vertex original, double pMultiplier)
+        {
+            vertex temp = new vertex(original.Position, original.TexCoord, original.Normal, original.Color);
+            for (int i = 0; i < original.Position.Length; i++)
+            {
+                temp.Position[i] *= (float)pMultiplier;
+            }
+            return temp;
+        }
+
+        public static vertex operator +(vertex original, vertex other)
+        {
+            vertex temp = new vertex(original.Position, original.TexCoord, original.Normal, original.Color);
+            for (int i = 0; i < original.Position.Length; i++)
+            {
+                temp.Position[i] += other.Position[i];
+            }
+            return temp;
+        }
+
     }
 
     public struct meshvert

@@ -146,9 +146,9 @@ namespace BspViewer
                     vertex[,] patch = new vertex[f.Size[0], f.Size[1]];
 
                     int cpt = f.Vertex;
-                    for (int x = 0; x < f.Size[0]; x++)
+                    for (int y = 0; y < f.Size[1]; y++)
                     {
-                        for (int y = 0; y < f.Size[1]; y++)
+                         for (int x = 0; x < f.Size[0]; x++)
                         {
                             patch[x, y] = file.Vertices[cpt];
                             cpt++;
@@ -169,48 +169,46 @@ namespace BspViewer
                             {
                                 for (int v = 0; v < 3; v++)
                                 {
-                                    vertex vert = patch[v + i, u + j];
-                                    controls[v * 3 +  u] = vert;
+                                    vertex vert = patch[u + i, v + j];
+                                    controls[u * 3 +  v] = vert;
                                     vertices.Add(new VertexPositionNormalTexture(V3FromFloatArray(vert.Position), V3FromFloatArray(vert.Normal), new Vector2(vert.TexCoord[0, 0], vert.TexCoord[0, 1])));
                                 }
                             }
-
-
-                            //indices
-                            int nb = width * height;
-                            int offset = 9;
-
-                            for (int n = 0; n < nb; n++)
-                            {
-                                for (int row = 0; row < 2; row++)
-                                {
-                                    for (int col = 0; col < 2; col++)
-                                    {
-                                        // 0, 0
-                                        indices.Add(col + 3 * row + offset * (nbTotalPatchs));
-                                        // 1, 0
-                                        indices.Add(col + 1 + 3 * row + offset * (nbTotalPatchs));
-                                        // 1, 1
-                                        indices.Add(col  + 1 + 3 * (row + 1) + offset * (nbTotalPatchs));
-
-                                        // 0, 0
-                                        indices.Add(col + 3 * row + offset * (nbTotalPatchs));
-                                        //1,1
-                                        indices.Add(col + 1 + 3 * (row + 1) + offset * (nbTotalPatchs));
-                                        //0,1
-                                        indices.Add(col + 3 * (row + 1) + offset * (nbTotalPatchs));
-
-                                    }
-                                }
-                                nbTotalPatchs++;
-                            }
-
-                           
+                            //
                         }
                     }
 
+                    //indices
+                    int nb = width * height;
+                    int offset = 9;
 
-                    
+                    for (int n = 0; n <= nb; n++)
+                    {
+                        for (int row = 0; row < 2; row++)
+                        {
+                            for (int col = 0; col < 2; col++)
+                            {
+                                // 0, 0
+                                indices.Add(col + (3 * row) + (offset * nbTotalPatchs));
+                                // 1, 0
+                                indices.Add((col + 1) + (3 * row) + (offset * nbTotalPatchs));
+                                // 1, 1
+                                indices.Add((col + 1) + (3 * (row + 1)) + (offset * nbTotalPatchs));
+
+                                // 0, 0
+                                indices.Add(col + (3 * row) + (offset * nbTotalPatchs));
+                                // 1, 1
+                                indices.Add((col + 1) + (3 * (row + 1)) + (offset * nbTotalPatchs));
+                                // 0, 1
+                                indices.Add(col + (3 * (row + 1)) + (offset * nbTotalPatchs));
+
+                            }
+                        }
+                        nbTotalPatchs++;
+                    }
+
+
+
                 }
                 
             }
@@ -315,7 +313,7 @@ namespace BspViewer
 
 
             RasterizerState rs = new RasterizerState();
-            rs.CullMode = CullMode.None;
+            rs.CullMode = CullMode.CullCounterClockwiseFace;
             rs.FillMode = FillMode.Solid;
             device.RasterizerState = rs;
 
@@ -328,7 +326,7 @@ namespace BspViewer
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
-                effect.Texture = Game.Content.Load<Texture2D>("textures/gothic_ceiling/stucco7top");
+                effect.Texture = Game.Content.Load<Texture2D>("textures/devgrid");
                 pass.Apply();
 
                 GraphicsDevice.SetVertexBuffer(VBuffer);

@@ -46,6 +46,7 @@ namespace BspViewer
             base.LoadContent();
         }
 
+        string mapName = "q3dm1";
         private void AddComponents()
         {
             int o = 0;
@@ -55,7 +56,7 @@ namespace BspViewer
             Components.Add(camera);
             camera.UpdateOrder = o++;
 
-            bspRender = new BspRenderer(this, "Content/maps/q3dm17.bsp");
+            bspRender = new BspRenderer(this, "Content/maps/" + mapName + ".bsp");
             Components.Add(bspRender);
             bspRender.UpdateOrder = o++;
             bspRender.DrawOrder = d++;
@@ -113,6 +114,12 @@ namespace BspViewer
                 _lowestFps = pFps;
             spriteBatch.DrawString(_devFont, "FPS : " + pFps.ToString("n0"), new Vector2(Window.ClientBounds.Width - _devFont.MeasureString("FPS : " + pFps.ToString("n0")).X, 0), Color.Yellow);
             spriteBatch.DrawString(_devFont, "LOW : " + _lowestFps.ToString("n0"), new Vector2(Window.ClientBounds.Width - _devFont.MeasureString("LOW : " + _lowestFps.ToString("n0")).X, offset), Color.Yellow);
+
+            //MapName
+
+            spriteBatch.DrawString(_devFont, "Map : " + mapName, new Vector2(Window.ClientBounds.Width - _devFont.MeasureString("Map : " + mapName).X, Window.ClientBounds.Height - _devFont.MeasureString("Map : " + mapName).Y), Color.White);
+
+
 
             spriteBatch.End();
 

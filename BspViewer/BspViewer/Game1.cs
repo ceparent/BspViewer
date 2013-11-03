@@ -46,7 +46,7 @@ namespace BspViewer
             base.LoadContent();
         }
 
-        string mapName = "q3dm1";
+        
         private void AddComponents()
         {
             int o = 0;
@@ -56,7 +56,7 @@ namespace BspViewer
             Components.Add(camera);
             camera.UpdateOrder = o++;
 
-            bspRender = new BspRenderer(this, "Content/maps/" + mapName + ".bsp");
+            bspRender = new BspRenderer(this,  Content.RootDirectory + "/maps/" + maps[mapIndex] + ".bsp");
             Components.Add(bspRender);
             bspRender.UpdateOrder = o++;
             bspRender.DrawOrder = d++;
@@ -69,6 +69,9 @@ namespace BspViewer
             base.UnloadContent();
         }
 
+        string[] maps = { "q3dm1", "q3dm8", "q3dm17" ,"Level" };
+        int mapIndex = 0;
+        KeyboardState oldKs;
         protected override void Update(GameTime gameTime)
         {
             KeyboardState ks = Keyboard.GetState();
@@ -76,7 +79,32 @@ namespace BspViewer
             if (ks.IsKeyDown(Keys.Escape))
                 this.Exit();
 
+            if (ks.IsKeyDown(Keys.Left) && oldKs.IsKeyUp(Keys.Left))
+            {
+                mapIndex--;
+                if (mapIndex < 0)
+                {
+                    mapIndex = maps.Count() - 1;
+                }
 
+                bspRender.Path = Content.RootDirectory + "/maps/" + maps[mapIndex] + ".bsp";
+
+            }
+            if (ks.IsKeyDown(Keys.Right) && oldKs.IsKeyUp(Keys.Right))
+            {
+                mapIndex++;
+                if (mapIndex > maps.Count() - 1)
+                {
+                    mapIndex = 0;
+                }
+
+                bspRender.Path = Content.RootDirectory + "/maps/" + maps[mapIndex] + ".bsp";
+
+            }
+
+
+
+            oldKs = ks;
             base.Update(gameTime);
         }
 
@@ -116,8 +144,8 @@ namespace BspViewer
             spriteBatch.DrawString(_devFont, "LOW : " + _lowestFps.ToString("n0"), new Vector2(Window.ClientBounds.Width - _devFont.MeasureString("LOW : " + _lowestFps.ToString("n0")).X, offset), Color.Yellow);
 
             //MapName
-
-            spriteBatch.DrawString(_devFont, "Map : " + mapName, new Vector2(Window.ClientBounds.Width - _devFont.MeasureString("Map : " + mapName).X, Window.ClientBounds.Height - _devFont.MeasureString("Map : " + mapName).Y), Color.White);
+            string mapname = "Map : " + maps[mapIndex];
+            spriteBatch.DrawString(_devFont, mapname, new Vector2(Window.ClientBounds.Width - _devFont.MeasureString(mapname).X, Window.ClientBounds.Height - _devFont.MeasureString(mapname).Y), Color.White);
 
 
 

@@ -15,8 +15,17 @@ namespace BspViewer
     class BspRenderer : DrawableGameComponent, IBspRenderer
     {
         BspFile file;
-        string path;
-
+        private string _path;
+        public string Path
+        {
+            get { return _path; }
+            set 
+            {
+                _path = value;
+                Generate();
+            }
+        }
+        
 
 
 
@@ -24,7 +33,7 @@ namespace BspViewer
             :base(pGame)
         {
             Game.Services.AddService(typeof(IBspRenderer), this);
-            path = pPath;
+            _path = pPath;
         }
 
         public override void Initialize()
@@ -37,14 +46,21 @@ namespace BspViewer
         protected override void LoadContent()
         {
             effect = new BasicEffect(GraphicsDevice);
-
-            file = new BspFile(path);
-
-            CreateBuffers();
-            CreateBeziers();
-
             base.LoadContent();
+
+            Tesselation = 5;
+            Generate();
         }
+
+        private void Generate()
+        {
+            file = new BspFile(Path);
+            CreateBuffers();
+            //CreateBeziers();
+            CreateBeziersWithTesselation();
+        }
+
+
 
 
 
@@ -68,7 +84,7 @@ namespace BspViewer
             List<leaf> visibleLeaves = new List<leaf>();
             foreach (leaf l in file.Leaves)
             {
-                //if(isLeafVisible(clusterIndex,l.Cluster))
+               // if(isLeafVisible(clusterIndex,l.Cluster))
                     visibleLeaves.Add(l);
             }
 
@@ -220,9 +236,186 @@ namespace BspViewer
                 BeziersIndex = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Count, BufferUsage.WriteOnly);
                 BeziersIndex.SetData(indices.ToArray(), 0, indices.Count);
             }
+            else
+            {
+                BeziersIndex = null;
+                BeziersVertices = null;
+            }
         }
 
+        private void CreateBeziersWithTesselation()
+        {
+            List<vertex[]> controlList = new List<vertex[]>();
+            foreach (face f in file.Faces)
+            {
+                if (f.Type == 2)
+                {
+                    int width = (f.Size[0] - 1) / 2;
+                    int height = (f.Size[1] - 1) / 2;
 
+                    vertex[,] patch = new vertex[f.Size[0], f.Size[1]];
+
+                    int cpt = f.Vertex;
+                    for (int y = 0; y < f.Size[1]; y++)
+                    {
+                        for (int x = 0; x < f.Size[0]; x++)
+                        {
+                            patch[x, y] = file.Vertices[cpt];
+                            cpt++;
+                        }
+                    }
+
+
+                    
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            int i = 2 * x;
+                            int j = 2 * y;
+                            vertex[] controls = new vertex[3 * 3];
+                            for (int u = 0; u < 3; u++)
+                            {
+                                for (int v = 0; v < 3; v++)
+                                {
+                                    vertex vert = patch[u + i, v + j];
+                                    controls[u * 3 + v] = vert;
+                                    controlList.Add(controls);
+                                }
+                            }
+                        }
+                    }
+
+
+                }
+
+            }
+
+
+            List<vertex> bspVertices;
+            List<int> indices;
+
+            Tesselate(out bspVertices, out indices,controlList);
+
+            List<VertexPositionNormalTexture> verticesList = new List<VertexPositionNormalTexture>();
+            int cpt2 = 0;
+            foreach (vertex vert in bspVertices)
+            {
+                Vector3 normal = V3FromFloatArray(vert.Normal);
+                normal.Normalize();
+
+                verticesList.Add(new VertexPositionNormalTexture(V3FromFloatArray(vert.Position), normal, new Vector2(vert.TexCoord[0, 0], vert.TexCoord[0, 1])));
+                cpt2++;
+            }
+            if (bspVertices.Count > 0)
+            {
+                BeziersVertices = new VertexBuffer(GraphicsDevice, typeof(VertexPositionNormalTexture), bspVertices.Count, BufferUsage.WriteOnly);
+                BeziersVertices.SetData(verticesList.ToArray());
+
+                BeziersIndex = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Count, BufferUsage.WriteOnly);
+                BeziersIndex.SetData(indices.ToArray(), 0, indices.Count);
+            }
+            else
+            {
+                BeziersIndex = null;
+                BeziersVertices = null;
+            }
+        }
+
+        public int Tesselation { get; set; }
+        private int TesselationOffset = 0;
+        private void Tesselate(out List<vertex> pVertices, out List<int> pIndices, List<vertex[]> pControls)
+        {
+            pVertices = new List<vertex>();
+            pIndices = new List<int>();
+
+
+            TesselationOffset = 0;
+            for (int i = 0; i < pControls.Count; i++)
+            {
+                TesselateOnePatch(pVertices, pIndices, pControls[i]);
+            }
+
+        }
+
+        private void TesselateOnePatch(List<vertex> pVerticesList,List<int> pIndices, vertex[] pControls)
+        {
+            int Length = Tesselation + 1;
+
+            vertex[,] newControls = new vertex[3, Length];
+
+            for (int i = 0; i < 3; i++)
+            {
+
+                vertex p0 = pControls[i * 3];
+                vertex p1 = pControls[(i  * 3) + 1];
+                vertex p2 = pControls[(i * 3) + 2];
+
+                for (int l = 0; l < Length; l++)
+                {
+                    double a = l / (double)Tesselation;
+                    double b = 1 - a;
+
+                    newControls[i, l] = p0 * b * b + p1 * 2 * b * a  + p2 * a * a;
+                }
+            }
+
+            vertex[] vertices = new vertex[Length * Length];
+
+            for (int x = 0; x < Length; x++)
+            {
+                vertex p0 = newControls[0, x];
+                vertex p1 = newControls[1, x];
+                vertex p2 = newControls[2, x];
+
+                double c = x / (double)Tesselation; // texcoord
+
+                for (int y = 0; y < Length; y++)
+                {
+                    
+                    double a = y / (double)Tesselation;
+                    double b = 1 - a;
+
+                    //2nd pass
+                    vertices[y +x  * Length] = p0 * b * b + p1 * 2 * b * a + p2 * a * a;
+                    vertices[y + x * Length].TexCoord = new float[,] { { (float)a, (float)c }, { (float)a, (float)c } };
+
+                }
+            }
+
+            List<int> indices = new List<int>();
+            int offset = Length * Length;
+
+            for (int row = 0; row < Length - 1; row++)
+            {
+                for (int col = 0; col < Length - 1; col++)
+                {
+                    // 0, 0
+                    indices.Add(col + (Length * row) + (TesselationOffset * offset));
+                    // 1, 1
+                    indices.Add((col + 1) + (Length * (row + 1)) + (TesselationOffset * offset));
+                    // 1, 0
+                    indices.Add((col + 1) + (Length * row) + (TesselationOffset * offset));
+
+
+                    // 0, 0
+                    indices.Add(col + (Length * row) + (TesselationOffset * offset));
+                    // 0, 1
+                    indices.Add(col + (Length * (row + 1)) + (TesselationOffset * offset));
+                    // 1, 1
+                    indices.Add((col + 1) + (Length * (row + 1)) + (TesselationOffset * offset));
+
+
+                }
+            }
+            
+            
+
+            TesselationOffset++;
+            pIndices.AddRange(indices);
+            pVerticesList.AddRange(vertices);
+
+        }
 
 
         VertexBuffer VBuffer;
@@ -338,174 +531,18 @@ namespace BspViewer
                 if (BeziersVertices != null)
                 {
                     device.Indices = BeziersIndex;
-                    device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, BeziersVertices.VertexCount, 0, BeziersVertices.VertexCount);
+                    device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, BeziersIndex.IndexCount, 0, BeziersIndex.IndexCount / 3);
+
                 }
-                
-                //device.DrawPrimitives(PrimitiveType.TriangleList, 0, BeziersVertices.VertexCount );
+
+                //device.DrawPrimitives(PrimitiveType.LineList, 0, BeziersVertices.VertexCount);
+
             }
              
             base.Draw(gameTime);
 
             
-        }
-
-
-
-        /*
-        public vertex CreatePatch3x3(vertex[] Control, int s1, int s2, int s3, float u, float v)
-        {
-
-            float var;
-
-            int n;			//nth series
-
-            float A, B, C;
-
-            vertex[] c = new vertex[3];
-            for (int i = 0; i < c.Length; i++)
-            {
-                c[i] = new vertex(new float[3], new float[2, 2], new float[3], new byte[4]);
-            }
-
-
-            vertex Final;
-            // Get Sub Controls
-
-
-
-            // Get Sub Controls (Get U)
-
-            for (int f = 0; f < 3; f++)
-            {
-
-                c[f].TexCoord[1, 0] = 0;
-
-                c[f].TexCoord[1, 1] = 0;
-
-                c[f].Normal = c[f].Position = new float[] { 0, 0, 0 };
-
-                c[f].TexCoord[0, 0] = 0;
-
-                c[f].TexCoord[0, 1] = 0;
-
-            }
-
-            Final = c[0];
-
-            for (int i = 0; i < 3; i++)
-            {
-
-                n = i + 1;
-
-                // A = Binomial co-efficent
-
-                A = (float)(PascalsTriangle(n, 3));
-
-                // B=(1-t)^Terms-N
-
-                B = (float)Math.Pow(1 - u, 3 - n);
-
-                // C=t^n-1
-
-                C = (float)Math.Pow(u, n - 1);
-
-
-
-                var = A * B * C;
-
-
-
-                // Get the Position
-
-                for (int f = 0; f < 3; f++)
-                {
-
-                    int s = 0;
-
-                    if (f == 0) s = s1;
-
-                    if (f == 1) s = s2;
-
-                    if (f == 2) s = s3;
-
-
-                    Vector3 Finalposition = floatToV3Raw(c[f].Position);
-                    Vector3 position = floatToV3Raw(Control[i + s].Position) * var;
-                    c[f].Position = V3ToFloatRaw(Finalposition + position);
-
-
-                    c[f].TexCoord[1, 0] += (Control[i + s].TexCoord[1, 0] * var);	// Add them all together
-
-                    c[f].TexCoord[1, 1] += (Control[i + s].TexCoord[1, 1] * var);	// Add them all together
-
-                    c[f].TexCoord[0, 0] += (Control[i + s].TexCoord[0, 0] * var);	// Add them all together
-
-                    c[f].TexCoord[0, 1] += (Control[i + s].TexCoord[0, 1] * var);	// Add them all together
-
-                    Vector3 Finalnormal = floatToV3Raw(c[f].Normal);
-                    Vector3 normal = floatToV3Raw(Control[i + s].Normal) * var;
-                    c[f].Normal = V3ToFloatRaw(Finalnormal + normal);
-
-                }
-
-            }
-
-
-
-
-
-            for (int i = 0; i < 3; i++)
-            {
-
-                n = i + 1;
-
-                // A = Binomial co-efficent
-
-                A = (float)(PascalsTriangle(n, 3));
-
-                // B=(1-t)^Terms-N
-
-                B = (float)Math.Pow(1 - v, 3 - n);
-
-                // C=t^n-1
-
-                C = (float)Math.Pow(v, n - 1);
-
-
-
-                var = A * B * C;
-
-
-
-                // Get the Position
-
-                Vector3 Finalposition = floatToV3Raw(Final.Position);
-                Vector3 position = floatToV3Raw(c[i].Position) * var;
-                Final.Position = V3ToFloatRaw(Finalposition + position);
-
-                Final.TexCoord[1, 0] += (c[i].TexCoord[1, 0] * var);	// Add them all together
-
-                Final.TexCoord[1, 1] += (c[i].TexCoord[1, 1] * var);	// Add them all together
-
-                Final.TexCoord[0, 0] += (c[i].TexCoord[0, 0] * var);	// Add them all together
-
-                Final.TexCoord[0, 1] += (c[i].TexCoord[0, 1] * var);	// Add them all together
-
-
-                Vector3 Finalnormal = floatToV3Raw(Final.Normal);
-                Vector3 normal = floatToV3Raw(c[i].Normal) * var;
-                Final.Normal = V3ToFloatRaw(Finalnormal + normal);
-
-
-
-
-            }
-
-            return Final;
-
-        }
-        */
-        
+        } 
 
         private Vector3 floatToV3Raw(float[] floats)
         {

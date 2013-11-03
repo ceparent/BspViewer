@@ -190,20 +190,23 @@ namespace BspViewer
 
         public static vertex operator *(vertex original, double pMultiplier)
         {
-            vertex temp = new vertex(original.Position, original.TexCoord, original.Normal, original.Color);
+            vertex temp = new vertex((float[])original.Position.Clone(), (float[,])original.TexCoord.Clone(), (float[])original.Normal.Clone(), original.Color);
             for (int i = 0; i < original.Position.Length; i++)
             {
                 temp.Position[i] *= (float)pMultiplier;
+                temp.Normal[i] *= (float)pMultiplier;
             }
+
             return temp;
         }
 
         public static vertex operator +(vertex original, vertex other)
         {
-            vertex temp = new vertex(original.Position, original.TexCoord, original.Normal, original.Color);
+            vertex temp = new vertex((float[])original.Position.Clone(), (float[,])original.TexCoord.Clone(), (float[])original.Normal.Clone(), original.Color);
             for (int i = 0; i < original.Position.Length; i++)
             {
                 temp.Position[i] += other.Position[i];
+                temp.Normal[i] += other.Normal[i];
             }
             return temp;
         }

@@ -99,9 +99,18 @@ namespace BspViewer
                 }
 
                 bspRender.Path = Content.RootDirectory + "/maps/" + maps[mapIndex] + ".bsp";
-
             }
 
+
+            // Wireframe
+            if (ks.IsKeyDown(Keys.E) && oldKs.IsKeyUp(Keys.E))
+                bspRender.WireFrame = !bspRender.WireFrame;
+
+            // Tesselation
+            if (ks.IsKeyDown(Keys.Up) && oldKs.IsKeyUp(Keys.Up))
+                bspRender.Tesselation += 1;
+            if (ks.IsKeyDown(Keys.Down) && oldKs.IsKeyUp(Keys.Down))
+                bspRender.Tesselation -= 1;
 
 
             oldKs = ks;
@@ -134,7 +143,7 @@ namespace BspViewer
             spriteBatch.DrawString(_devFont, "Position  {  X : " + Math.Floor(camera.Position.X).ToString() + " // Y : " + Math.Floor(camera.Position.Y).ToString() + "(+5) // Z: " + Math.Floor(camera.Position.Z).ToString() + " } ", new Vector2(0, offset * cpt++), Color.White);
             spriteBatch.DrawString(_devFont, "Face {  X : " + RotatedTarget.X.ToString("n2") + "  // Y : " + RotatedTarget.Y.ToString("n2") + " // Z : " + RotatedTarget.Z.ToString("n2") + " } ", new Vector2(0, offset * cpt++), Color.White);
             cpt++;
-
+            spriteBatch.DrawString(_devFont, "Tesselation : " + bspRender.Tesselation, new Vector2(0, offset * cpt++), Color.White);
 
 
             //FPS:

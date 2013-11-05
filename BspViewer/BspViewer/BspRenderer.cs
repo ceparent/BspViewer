@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.IO;
 
 namespace BspViewer
 {
@@ -25,8 +26,13 @@ namespace BspViewer
                 Generate();
             }
         }
-        
 
+        private bool _wireFramed = false;
+        public bool WireFrame
+        {
+            get { return _wireFramed; }
+            set { _wireFramed = value; }
+        }
 
 
         public BspRenderer(Game pGame, string pPath)
@@ -48,7 +54,7 @@ namespace BspViewer
             effect = new BasicEffect(GraphicsDevice);
             base.LoadContent();
 
-            Tesselation = 5;
+            _tesselation = 5;
             Generate();
         }
 
@@ -56,10 +62,34 @@ namespace BspViewer
         {
             file = new BspFile(Path);
             CreateBuffers();
-            //CreateBeziers();
             CreateBeziersWithTesselation();
+            LoadTextures();
         }
+        Dictionary<string, Texture2D> _textures;
+        private void LoadTextures()
+        {
+            StreamWriter writer = new StreamWriter("missing.txt");
 
+            _textures = new Dictionary<string, Texture2D>();
+            foreach (texture t in file.Textures)
+            {
+                if (t.Name.Length > 9)
+                {
+                    string textureName = "textures/Quake3/" + t.Name.Substring(9);
+                    if (File.Exists(Game.Content.RootDirectory + "/" + textureName + ".xnb"))
+                    {
+                        _textures.Add(textureName, Game.Content.Load<Texture2D>(textureName));
+                    }
+                    else
+                    {
+                        writer.WriteLine(textureName);
+                    }
+                }
+            }
+
+            writer.Close();
+
+        }
 
 
 
@@ -69,11 +99,10 @@ namespace BspViewer
 
             DetermineVisibleFaces();
 
-
             base.Update(gameTime);
         }
 
-
+        int[] textureLengths;
         private void DetermineVisibleFaces()
         {
             
@@ -118,9 +147,13 @@ namespace BspViewer
 
 
 
+            List<int>[] Texturearrays = new List<int>[file.Textures.Count()];
+            for (int i = 0; i < file.Textures.Count(); i++)
+            {
+                Texturearrays[i] = new List<int>();
+            }
 
             //arrays
-            List<int> indices = new List<int>();
             foreach (face f in visibleFaces)
             {
                 if (f.Type == 1 || f.Type == 3)
@@ -130,128 +163,47 @@ namespace BspViewer
                     {
                         //index
                         int index = f.Vertex + file.MeshVerts[i].Offset;
-                        indices.Add(index);
+                        Texturearrays[f.Texture].Add(index);
                     }
 
                 }
 
 
             }
-            IBuffer = new IndexBuffer(Game.GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Count, BufferUsage.WriteOnly);
-            if (indices.Count != 0)
-                IBuffer.SetData(indices.ToArray());
+
+            List<int> realList = new List<int>();
+            textureLengths = new int[file.Textures.Count()];
+            int cpt = 0;
+            for (int i = 0; i < Texturearrays.Length; i++)
+            {
+                realList.AddRange(Texturearrays[i]);
+                cpt += Texturearrays[i].Count;
+                textureLengths[i] = cpt;
+            }
+
+            IBuffer = new IndexBuffer(Game.GraphicsDevice, IndexElementSize.ThirtyTwoBits, realList.Count, BufferUsage.WriteOnly);
+            IBuffer.SetData(realList.ToArray());
+
+
+
         }
 
         VertexBuffer BeziersVertices;
         IndexBuffer BeziersIndex;
-        private void CreateBeziers()
-        {
-            List<VertexPositionNormalTexture> vertices = new List<VertexPositionNormalTexture>();
-            List<int> indices = new List<int>();
-            int nbTotalPatchs = 0;
-            foreach (face f in file.Faces)
-            {
-                if (f.Type == 2)
-                {
-                    int width = (f.Size[0] - 1) / 2;
-                    int height = (f.Size[1] - 1) / 2;
-
-
-
-
-                    vertex[,] patch = new vertex[f.Size[0], f.Size[1]];
-
-                    int cpt = f.Vertex;
-                    for (int y = 0; y < f.Size[1]; y++)
-                    {
-                         for (int x = 0; x < f.Size[0]; x++)
-                        {
-                            patch[x, y] = file.Vertices[cpt];
-                            cpt++;
-                        }
-                    }
-
-
-                    for (int x = 0; x < width; x++)
-                    {
-                        for (int y = 0; y < height; y++)
-                        {
-                            int i = 2 * x;
-                            int j = 2 * y;
-
-
-                            vertex[] controls = new vertex[3 * 3];
-                            for (int u = 0; u < 3; u++)
-                            {
-                                for (int v = 0; v < 3; v++)
-                                {
-                                    vertex vert = patch[u + i, v + j];
-                                    controls[u * 3 +  v] = vert;
-                                    vertices.Add(new VertexPositionNormalTexture(V3FromFloatArray(vert.Position), V3FromFloatArray(vert.Normal), new Vector2(vert.TexCoord[0, 0], vert.TexCoord[0, 1])));
-                                }
-                            }
-                            //
-                        }
-                    }
-
-                    //indices
-                    int nb = width * height;
-                    int offset = 9;
-
-                    for (int n = 0; n <= nb; n++)
-                    {
-                        for (int row = 0; row < 2; row++)
-                        {
-                            for (int col = 0; col < 2; col++)
-                            {
-                                // 0, 0
-                                indices.Add(col + (3 * row) + (offset * nbTotalPatchs));
-                                // 1, 0
-                                indices.Add((col + 1) + (3 * row) + (offset * nbTotalPatchs));
-                                // 1, 1
-                                indices.Add((col + 1) + (3 * (row + 1)) + (offset * nbTotalPatchs));
-
-                                // 0, 0
-                                indices.Add(col + (3 * row) + (offset * nbTotalPatchs));
-                                // 1, 1
-                                indices.Add((col + 1) + (3 * (row + 1)) + (offset * nbTotalPatchs));
-                                // 0, 1
-                                indices.Add(col + (3 * (row + 1)) + (offset * nbTotalPatchs));
-
-                            }
-                        }
-                        nbTotalPatchs++;
-                    }
-
-
-
-                }
-                
-            }
-            if (vertices.Count > 0)
-            {
-                BeziersVertices = new VertexBuffer(GraphicsDevice, typeof(VertexPositionNormalTexture), vertices.Count, BufferUsage.WriteOnly);
-                BeziersVertices.SetData(vertices.ToArray());
-
-                BeziersIndex = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Count, BufferUsage.WriteOnly);
-                BeziersIndex.SetData(indices.ToArray(), 0, indices.Count);
-            }
-            else
-            {
-                BeziersIndex = null;
-                BeziersVertices = null;
-            }
-        }
-
+        int[] BezierstextureLengths;
         private void CreateBeziersWithTesselation()
         {
+            List<int> bezierTextureIds = new List<int>();
             List<vertex[]> controlList = new List<vertex[]>();
+            List<int> textureIds = new List<int>();
             foreach (face f in file.Faces)
             {
                 if (f.Type == 2)
                 {
                     int width = (f.Size[0] - 1) / 2;
                     int height = (f.Size[1] - 1) / 2;
+
+                    bezierTextureIds.Add(f.Texture);
 
                     vertex[,] patch = new vertex[f.Size[0], f.Size[1]];
 
@@ -280,9 +232,11 @@ namespace BspViewer
                                 {
                                     vertex vert = patch[u + i, v + j];
                                     controls[u * 3 + v] = vert;
-                                    controlList.Add(controls);
+                                    
                                 }
                             }
+                            controlList.Add(controls);
+                            textureIds.Add(f.Texture);
                         }
                     }
 
@@ -293,9 +247,34 @@ namespace BspViewer
 
 
             List<vertex> bspVertices;
-            List<int> indices;
 
-            Tesselate(out bspVertices, out indices,controlList);
+            bspVertices = new List<vertex>();
+
+
+
+            List<int>[] Texturearrays = new List<int>[file.Textures.Count()];
+            for (int i = 0; i < file.Textures.Count(); i++)
+            {
+                Texturearrays[i] = new List<int>();
+            }
+
+            TesselationOffset = 0;
+            for (int i = 0; i < controlList.Count; i++)
+            {
+                Texturearrays[textureIds[i]].AddRange(TesselateOnePatch(bspVertices, controlList[i]));
+            }
+
+
+            List<int> realList = new List<int>();
+            BezierstextureLengths = new int[file.Textures.Count()];
+            int cpt3 = 0;
+            for (int i = 0; i < Texturearrays.Length; i++)
+            {
+                realList.AddRange(Texturearrays[i]);
+                cpt3 += Texturearrays[i].Count;
+                BezierstextureLengths[i] = cpt3;
+            }
+
 
             List<VertexPositionNormalTexture> verticesList = new List<VertexPositionNormalTexture>();
             int cpt2 = 0;
@@ -312,8 +291,8 @@ namespace BspViewer
                 BeziersVertices = new VertexBuffer(GraphicsDevice, typeof(VertexPositionNormalTexture), bspVertices.Count, BufferUsage.WriteOnly);
                 BeziersVertices.SetData(verticesList.ToArray());
 
-                BeziersIndex = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Count, BufferUsage.WriteOnly);
-                BeziersIndex.SetData(indices.ToArray(), 0, indices.Count);
+                BeziersIndex = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, realList.Count, BufferUsage.WriteOnly);
+                BeziersIndex.SetData(realList.ToArray(), 0, realList.Count);
             }
             else
             {
@@ -322,23 +301,23 @@ namespace BspViewer
             }
         }
 
-        public int Tesselation { get; set; }
-        private int TesselationOffset = 0;
-        private void Tesselate(out List<vertex> pVertices, out List<int> pIndices, List<vertex[]> pControls)
+        private int _tesselation;
+        public int Tesselation
         {
-            pVertices = new List<vertex>();
-            pIndices = new List<int>();
-
-
-            TesselationOffset = 0;
-            for (int i = 0; i < pControls.Count; i++)
+            get { return _tesselation; }
+            set
             {
-                TesselateOnePatch(pVertices, pIndices, pControls[i]);
+                _tesselation = value;
+                if (_tesselation < 1)
+                    _tesselation = 1;
+                if (_tesselation > 10)
+                    _tesselation = 10;
+
+                CreateBeziersWithTesselation();
             }
-
         }
-
-        private void TesselateOnePatch(List<vertex> pVerticesList,List<int> pIndices, vertex[] pControls)
+        private int TesselationOffset = 0;
+        private List<int> TesselateOnePatch(List<vertex> pVerticesList, vertex[] pControls)
         {
             int Length = Tesselation + 1;
 
@@ -378,7 +357,7 @@ namespace BspViewer
 
                     //2nd pass
                     vertices[y +x  * Length] = p0 * b * b + p1 * 2 * b * a + p2 * a * a;
-                    vertices[y + x * Length].TexCoord = new float[,] { { (float)a, (float)c }, { (float)a, (float)c } };
+                    vertices[y + x * Length].TexCoord = new float[,] { { p0.TexCoord[0,0] + (float)a, p0.TexCoord[0,0] +(float)c }, { p0.TexCoord[0,1] +(float)a,  p0.TexCoord[0,1] +(float)c } };
 
                 }
             }
@@ -412,8 +391,8 @@ namespace BspViewer
             
 
             TesselationOffset++;
-            pIndices.AddRange(indices);
             pVerticesList.AddRange(vertices);
+            return indices;
 
         }
 
@@ -500,18 +479,27 @@ namespace BspViewer
         BasicEffect effect;
         public override void Draw(GameTime gameTime)
         {
-            
+
             GraphicsDevice device = Game.GraphicsDevice;
-            device.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1.0f, 0);
 
 
             RasterizerState rs = new RasterizerState();
             rs.CullMode = CullMode.CullCounterClockwiseFace;
-            rs.FillMode = FillMode.Solid;
+
+            if (!WireFrame)
+            {
+                rs.FillMode = FillMode.Solid;
+                effect.EnableDefaultLighting();
+            }
+            else
+            {
+                rs.FillMode = FillMode.WireFrame;
+                effect.LightingEnabled = false;
+            }
+
             device.RasterizerState = rs;
 
             ICameraComponent camera = (ICameraComponent)Game.Services.GetService(typeof(ICameraComponent));
-            effect.EnableDefaultLighting();
             effect.World = Matrix.Identity;
             effect.View = camera.ViewMatrix;
             effect.Projection = camera.ProjectionMatrix;
@@ -519,23 +507,67 @@ namespace BspViewer
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
-                effect.Texture = Game.Content.Load<Texture2D>("textures/devgrid");
-                pass.Apply();
 
                 GraphicsDevice.SetVertexBuffer(VBuffer);
-                device.Indices = IBuffer;
-                device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VBuffer.VertexCount, 0, IBuffer.IndexCount / 3);
+
+                int lastOffset = 0;
+                for (int i = 0; i < textureLengths.Count() ; i++)
+                {
+                    if ((textureLengths[i] - lastOffset) > 0)
+                    {
+                        string textureName = "textures/Quake3/" + file.Textures[i].Name.Substring(9);
+                        if(_textures.ContainsKey(textureName))
+                        {
+                            effect.Texture = _textures[textureName];
+                        }
+                        else
+                        {
+                            effect.Texture = Game.Content.Load<Texture2D>("textures/devgrid");
+                        }
+
+                        pass.Apply();
+                        device.Indices = IBuffer;
+                        device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, IBuffer.IndexCount, lastOffset, (textureLengths[i] - lastOffset) / 3);
+
+                        lastOffset = textureLengths[i];
+                    }
+                }
+
+                
+
+
                 
                 GraphicsDevice.SetVertexBuffer(BeziersVertices);
 
                 if (BeziersVertices != null)
                 {
-                    device.Indices = BeziersIndex;
-                    device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, BeziersIndex.IndexCount, 0, BeziersIndex.IndexCount / 3);
+
+                    lastOffset = 0;
+                    for (int i = 0; i < BezierstextureLengths.Count(); i++)
+                    {
+                        if ((BezierstextureLengths[i] - lastOffset) > 0)
+                        {
+                            string textureName = "textures/Quake3/" + file.Textures[i].Name.Substring(9);
+                            if (_textures.ContainsKey(textureName))
+                            {
+                                effect.Texture = _textures[textureName];
+                            }
+                            else
+                            {
+                                effect.Texture = Game.Content.Load<Texture2D>("textures/devgrid");
+                            }
+
+                            pass.Apply();
+                            device.Indices = BeziersIndex;
+                            device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, BeziersIndex.IndexCount, lastOffset, (BezierstextureLengths[i] - lastOffset) / 3);
+
+                            lastOffset = BezierstextureLengths[i];
+                        }
+                    }
+
 
                 }
 
-                //device.DrawPrimitives(PrimitiveType.LineList, 0, BeziersVertices.VertexCount);
 
             }
              

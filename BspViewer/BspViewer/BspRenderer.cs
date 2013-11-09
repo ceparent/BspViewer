@@ -16,6 +16,10 @@ namespace BspViewer
     class BspRenderer : DrawableGameComponent, IBspRenderer
     {
         BspFile file;
+        public BspFile BspFile
+        {
+            get { return file; }
+        }
         private string _path;
         public string Path
         {
@@ -23,6 +27,7 @@ namespace BspViewer
             set 
             {
                 _path = value;
+                file = new BspFile(Path);
                 Generate();
             }
         }
@@ -44,7 +49,7 @@ namespace BspViewer
 
         public override void Initialize()
         {
-
+            file = new BspFile(Path);
 
             base.Initialize();
         }
@@ -56,11 +61,11 @@ namespace BspViewer
 
             _tesselation = 5;
             Generate();
+            
         }
 
         private void Generate()
         {
-            file = new BspFile(Path);
             CreateBuffers();
             CreateBeziersWithTesselation();
             LoadTextures();
@@ -113,7 +118,7 @@ namespace BspViewer
             List<leaf> visibleLeaves = new List<leaf>();
             foreach (leaf l in file.Leaves)
             {
-               // if(isLeafVisible(clusterIndex,l.Cluster))
+                //if(isLeafVisible(clusterIndex,l.Cluster))
                     visibleLeaves.Add(l);
             }
 
@@ -465,7 +470,7 @@ namespace BspViewer
 
         }
 
-        private Vector3 V3FromFloatArray(float[] array)
+        public static Vector3 V3FromFloatArray(float[] array)
         {
             if (array.Count() != 3)
                 throw new InvalidOperationException();

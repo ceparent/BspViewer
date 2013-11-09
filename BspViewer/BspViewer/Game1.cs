@@ -18,7 +18,9 @@ namespace BspViewer
         SpriteBatch spriteBatch;
 
         CameraGC camera;
+        Player player;
         BspRenderer bspRender;
+        BspCollisions collisions;
 
         public Game1()
         {
@@ -46,11 +48,16 @@ namespace BspViewer
             base.LoadContent();
         }
 
-        
+
         private void AddComponents()
         {
             int o = 0;
             int d = 0;
+
+
+            player = new Player(this);
+            Components.Add(player);
+            player.UpdateOrder = o++;
 
             camera = new CameraGC(this);
             Components.Add(camera);
@@ -61,6 +68,9 @@ namespace BspViewer
             bspRender.UpdateOrder = o++;
             bspRender.DrawOrder = d++;
 
+            //Collisions
+            collisions = new BspCollisions(bspRender);
+            Services.AddService(typeof(BspCollisions), collisions);
 
         }
 
@@ -69,7 +79,7 @@ namespace BspViewer
             base.UnloadContent();
         }
 
-        string[] maps = { "q3dm1", "q3dm8", "q3dm17" ,"Level" };
+        string[] maps = { "q3dm1", "q3dm8", "q3dm17" ,"Level", "test" };
         int mapIndex = 0;
         KeyboardState oldKs;
         protected override void Update(GameTime gameTime)
@@ -140,10 +150,12 @@ namespace BspViewer
             //Player
             Vector3 RotatedTarget = camera.RotatedTarget;
 
-            spriteBatch.DrawString(_devFont, "Position  {  X : " + Math.Floor(camera.Position.X).ToString() + " // Y : " + Math.Floor(camera.Position.Y).ToString() + "(+5) // Z: " + Math.Floor(camera.Position.Z).ToString() + " } ", new Vector2(0, offset * cpt++), Color.White);
+            spriteBatch.DrawString(_devFont, "Position  {  X : " + Math.Floor(player.Position.X).ToString() + " // Y : " + Math.Floor(player.Position.Y).ToString() + "(+5) // Z: " + Math.Floor(player.Position.Z).ToString() + " } ", new Vector2(0, offset * cpt++), Color.White);
             spriteBatch.DrawString(_devFont, "Face {  X : " + RotatedTarget.X.ToString("n2") + "  // Y : " + RotatedTarget.Y.ToString("n2") + " // Z : " + RotatedTarget.Z.ToString("n2") + " } ", new Vector2(0, offset * cpt++), Color.White);
             cpt++;
             spriteBatch.DrawString(_devFont, "Tesselation : " + bspRender.Tesselation, new Vector2(0, offset * cpt++), Color.White);
+            cpt++;
+            spriteBatch.DrawString(_devFont, "Collision Fraction : " + collisions.outputFraction, new Vector2(0, offset * cpt++), Color.White);
 
 
             //FPS:

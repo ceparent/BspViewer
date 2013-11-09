@@ -19,7 +19,6 @@ namespace BspViewer
 
         Matrix ViewMatrix { get; }
         Matrix ProjectionMatrix { get;}
-        Vector2 Rotation { get; set; }
 
         Vector3 RotatedTarget { get; }
 

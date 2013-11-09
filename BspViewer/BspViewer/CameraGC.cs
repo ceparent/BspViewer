@@ -18,6 +18,7 @@ namespace BspViewer
         static float NEAR_PLANE = 0.1f;
         static float FAR_PLANE = 5000.0f;
 
+        Player player;
         public CameraGC(Game pGame)
             : base(pGame)
         {
@@ -26,16 +27,15 @@ namespace BspViewer
 
         public override void Initialize()
         {
-            Rotation = Vector2.Zero;
+            player = (Player)Game.Services.GetService(typeof(Player));
+
+            player.Rotation = Vector2.Zero;
             
             Target = Vector3.Forward;
             UpVector = Vector3.Up;
 
             UpdateViewMatrix();
             ProjectionMatrix = Matrix.CreatePerspectiveFieldOfView(VIEW_ANGLE, Game.GraphicsDevice.Viewport.AspectRatio, NEAR_PLANE, FAR_PLANE);
-
-            Mouse.SetPosition(Game.Window.ClientBounds.Width / 2, Game.Window.ClientBounds.Height / 2);
-            originalMouse = Mouse.GetState();
 
             base.Initialize();
         }
@@ -44,51 +44,10 @@ namespace BspViewer
         {
             UpdateViewMatrix();
 
-            Game1 CastedGame = (Game1)Game;
-            MoveAround();
-
             base.Update(gameTime);
         }
 
-        MouseState originalMouse;
-        float CameraSpeed = 0.003f;
-        float WalkSpeed = 15f;
-        private void MoveAround()
-        {
-            KeyboardState ks = Keyboard.GetState();
-            MouseState ms = Mouse.GetState();
-            
-
-            
-            if (ms != originalMouse && Game.IsActive)
-            {
-                float xdiff = ms.X - originalMouse.X;
-                float ydiff = ms.Y - originalMouse.Y;
-
-                Vector2 diff = new Vector2(-xdiff * CameraSpeed, -ydiff * CameraSpeed);
-
-                Rotation += diff;
-                Mouse.SetPosition(Game.Window.ClientBounds.Width / 2, Game.Window.ClientBounds.Height / 2);
-            }
-
-            Vector3 movement = Vector3.Zero;
-            if (ks.IsKeyDown(Keys.W))
-                movement += Vector3.Forward;
-            if (ks.IsKeyDown(Keys.S))
-                movement += Vector3.Backward;
-            if (ks.IsKeyDown(Keys.A))
-                movement += Vector3.Left;
-            if (ks.IsKeyDown(Keys.D))
-                movement += Vector3.Right;
-
-            if (movement != Vector3.Zero)
-                movement.Normalize();
-
-
-            Vector3 rotatedMov = RotateDirection(movement);
-            _position += rotatedMov * WalkSpeed;
-
-        }
+       
 
 
 
@@ -97,7 +56,7 @@ namespace BspViewer
         {
             get
             {
-                Matrix rotation = Matrix.CreateRotationX(Rotation.Y) * Matrix.CreateRotationY(Rotation.X);
+                Matrix rotation = Matrix.CreateRotationX(player.Rotation.Y) * Matrix.CreateRotationY(player.Rotation.X);
                 return  Vector3.Transform(Target, rotation);
             }
 
@@ -107,23 +66,18 @@ namespace BspViewer
         {
 
 
-            ViewMatrix = Matrix.CreateLookAt(Position, Position + RotatedTarget, UpVector);
+            ViewMatrix = Matrix.CreateLookAt(player.Position, player.Position + RotatedTarget, UpVector);
         }
 
         public void Move(Vector3 pMovement, float pSpeed)
         {
-            Matrix rotation = Matrix.CreateRotationX(Rotation.Y) * Matrix.CreateRotationY(Rotation.X);
+            Matrix rotation = Matrix.CreateRotationX(player.Rotation.Y) * Matrix.CreateRotationY(player.Rotation.X);
             Vector3 rotatedVector = Vector3.Transform(pMovement, rotation);
-            Position += pSpeed * rotatedVector;
+            player.Position += pSpeed * rotatedVector;
             
         }
 
-        private Vector3 _position;
-        public Vector3 Position
-        {
-            get { return _position; }
-            set { _position = value; }
-        }
+
 
         private Vector3 _target;
         public Vector3 Target
@@ -153,30 +107,10 @@ namespace BspViewer
             set { _projectionMatrix = value; }
         }
 
-        Vector2 _rotation;
-        public Vector2 Rotation
-        {
-            get { return _rotation; }
-            set {
-                _rotation = value;
-                if (_rotation.Y <= -MathHelper.PiOver2)
-                    _rotation.Y =  -MathHelper.PiOver2 + 0.0001f;
-                if (_rotation.Y >= MathHelper.PiOver2)
-                    _rotation.Y = MathHelper.PiOver2 - 0.0001f;
-            }
-        }
-
-
-        public Vector3 RotateDirection(Vector3 pDirection)
-        {
-            Matrix rotation = Matrix.CreateRotationX(Rotation.Y) * Matrix.CreateRotationY(Rotation.X);
-            Vector3 rotatedVector = Vector3.Transform(pDirection, rotation);
-            return rotatedVector;
-        }
 
         public Vector3 RotateDirectionWithoutY(Vector3 pDirection)
         {
-            Matrix rotation = Matrix.CreateRotationX(Rotation.Y) * Matrix.CreateRotationY(Rotation.X);
+            Matrix rotation = Matrix.CreateRotationX(player.Rotation.Y) * Matrix.CreateRotationY(player.Rotation.X);
             Vector3 rotatedVector = Vector3.Transform(pDirection, rotation);
             rotatedVector.Y = 0;
             return rotatedVector;
@@ -184,5 +118,17 @@ namespace BspViewer
 
 
 
+
+        public Vector3 Position
+        {
+            get
+            {
+                return player.Position;
+            }
+            set
+            {
+                player.Position = value;
+            }
+        }
     }
 }

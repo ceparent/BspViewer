@@ -107,11 +107,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BspCollisions.cs" />
     <Compile Include="BspFile.cs" />
     <Compile Include="BspRenderer.cs" />
     <Compile Include="CameraGC.cs" />
     <Compile Include="IBspRenderer.cs" />
     <Compile Include="ICameraComponent.cs" />
+    <Compile Include="Player.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />
